@@ -126,6 +126,16 @@ create_worktree() {
     echo -e "  ${GREEN}✓ vendor → ${dots}vendor (symlink)${NC}"
   fi
 
+  # Symlink docker-compose.override.yml if it exists in main repo (required for Docker/Makefile commands)
+  if [[ -f "$GIT_ROOT/docker-compose.override.yml" ]]; then
+    local depth
+    depth=$(echo ".worktrees/$branch_name" | tr '/' '\n' | wc -l | tr -d ' ')
+    local dots
+    dots=$(printf '../%.0s' $(seq 1 $depth))
+    ln -sf "${dots}docker-compose.override.yml" "$worktree_path/docker-compose.override.yml"
+    echo -e "  ${GREEN}✓ docker-compose.override.yml → ${dots}docker-compose.override.yml (symlink)${NC}"
+  fi
+
   # Copy environment files
   copy_env_files "$worktree_path"
 
