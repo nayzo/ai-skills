@@ -256,6 +256,57 @@ copy_env_to_worktree() {
   copy_env_files "$worktree_path"
 }
 
+# Migrate uncommitted changes from current location to a new worktree
+migrate_to_worktree() {
+  local branch_name="$1"
+  local from_branch="${2:-main}"
+
+  if [[ -z "$branch_name" ]]; then
+    echo -e "${RED}Error: Branch name required${NC}"
+    echo ""
+    show_help
+    exit 1
+  fi
+
+  # Check there are uncommitted changes (staged, unstaged, or untracked)
+  local has_staged has_unstaged has_untracked
+  git diff --cached --quiet && has_staged=0 || has_staged=1
+  git diff --quiet && has_unstaged=0 || has_unstaged=1
+  [[ -z "$(git ls-files --others --exclude-standard)" ]] && has_untracked=0 || has_untracked=1
+
+  if [[ $has_staged -eq 0 && $has_unstaged -eq 0 && $has_untracked -eq 0 ]]; then
+    echo -e "${YELLOW}No uncommitted changes to migrate.${NC}"
+    echo -e "Use '${BLUE}create${NC}' instead to just create the worktree."
+    exit 0
+  fi
+
+  echo -e "${BLUE}Migrating uncommitted changes to new worktree: $branch_name${NC}"
+
+  # Stash everything: staged + unstaged + untracked
+  git stash push --include-untracked -m "wt-migrate: $branch_name"
+  echo -e "  ${GREEN}✓ Changes stashed (stash@{0})${NC}"
+
+  # Create the worktree (shares the same .git stash stack)
+  create_worktree "$branch_name" "$from_branch"
+
+  local worktree_path="$WORKTREE_DIR/$branch_name"
+
+  # Restore stash inside the new worktree
+  echo -e "${BLUE}Restoring stashed changes in worktree...${NC}"
+  if git -C "$worktree_path" stash pop; then
+    echo -e "  ${GREEN}✓ Changes restored${NC}"
+  else
+    echo -e "  ${YELLOW}⚠️  Stash pop had conflicts. Resolve manually in: $worktree_path${NC}"
+    echo -e "  Stash is still available: run 'git stash list' to see it."
+  fi
+
+  echo ""
+  echo -e "${GREEN}✓ Migration complete!${NC}"
+  echo ""
+  echo "To switch to this worktree:"
+  echo -e "${BLUE}cd $worktree_path${NC}"
+}
+
 # Clean up completed worktrees
 cleanup_worktrees() {
   if [[ ! -d "$WORKTREE_DIR" ]]; then
@@ -329,6 +380,8 @@ Usage: worktree-manager.sh <command> [options]
 Commands:
   create <branch> [from]   Create new worktree (copies .env files automatically)
                            (from defaults to main)
+  migrate <branch> [from]  Move uncommitted changes from current repo to a new worktree
+                           (stash → create worktree → stash pop)
   list | ls                List all worktrees and current status
   switch | go [name]       Switch to a worktree (or 'main' to go back)
   copy-env | env [name]    Copy .env files from main repo to worktree
@@ -338,6 +391,7 @@ Commands:
 Examples:
   worktree-manager.sh create feat/ALM-1234/my-feature
   worktree-manager.sh create fix/ALM-5678/my-fix main
+  worktree-manager.sh migrate feat/ALM-1234/my-feature
   worktree-manager.sh list
   worktree-manager.sh switch feat/ALM-1234/my-feature
   worktree-manager.sh copy-env feat/ALM-1234/my-feature
@@ -356,10 +410,11 @@ main() {
   local command="${1:-list}"
 
   case "$command" in
-    create)       create_worktree "$2" "$3" ;;
-    list|ls)      list_worktrees ;;
-    switch|go)    switch_worktree "$2" ;;
-    copy-env|env) copy_env_to_worktree "$2" ;;
+    create)        create_worktree "$2" "$3" ;;
+    migrate|mv)    migrate_to_worktree "$2" "$3" ;;
+    list|ls)       list_worktrees ;;
+    switch|go)     switch_worktree "$2" ;;
+    copy-env|env)  copy_env_to_worktree "$2" ;;
     cleanup|clean) cleanup_worktrees ;;
     help|-h|--help) show_help ;;
     *)
