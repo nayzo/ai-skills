@@ -1,42 +1,100 @@
-# Git Worktree Generic — Installation
+# Git Worktree Manager — Installation
+
+## Installation recommandée (one-liner)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/nayzo/ai-skills/main/git-worktree/install.sh | bash
+```
+
+L'installateur interactif configure :
+1. Le script dans `~/.local/share/git-worktree/worktree-manager.sh`
+2. La fonction shell `wt()` dans ton rc file (bash/zsh/fish)
+3. L'intégration IA au choix (Claude Code, Cursor, OpenCode)
+
+Test après installation :
+```bash
+source ~/.zshrc   # ou ~/.bashrc
+wt list
+```
+
+---
 
 ## Prérequis
 
 - Git ≥ 2.5
 - Bash
-- Pour OpenCode : `@opencode-ai/plugin` (inclus dans OpenCode)
+- curl (pour l'installateur et `wt update`)
 
 ---
 
-## 1. Installer le script (commun à tous les outils)
+## Installation manuelle
+
+### 1. Script
 
 ```bash
 mkdir -p ~/.local/share/git-worktree
-cp worktree-manager.sh ~/.local/share/git-worktree/
+curl -sSL https://raw.githubusercontent.com/nayzo/ai-skills/main/git-worktree/worktree-manager.sh \
+  -o ~/.local/share/git-worktree/worktree-manager.sh
 chmod +x ~/.local/share/git-worktree/worktree-manager.sh
-
-# Alias pratique (optionnel)
-echo 'alias wt="bash ~/.local/share/git-worktree/worktree-manager.sh"' >> ~/.zshrc
-source ~/.zshrc
 ```
 
-Test :
+### 2. Fonction shell (bash/zsh)
+
+Ajouter dans `~/.zshrc` ou `~/.bashrc` :
+
 ```bash
-wt list
-# ou
-bash ~/.local/share/git-worktree/worktree-manager.sh list
+# Git Worktree Manager
+wt() {
+  local cd_path_file="$HOME/.local/share/git-worktree/.cd_path"
+  rm -f "$cd_path_file"
+  bash "$HOME/.local/share/git-worktree/worktree-manager.sh" "$@"
+  local exit_code=$?
+  [[ $exit_code -ne 0 ]] && return $exit_code
+  local cd_path
+  cd_path=$(cat "$cd_path_file" 2>/dev/null)
+  if [[ -n "$cd_path" ]]; then
+    rm -f "$cd_path_file"
+    cd "$cd_path"
+  fi
+}
+```
+
+> **Pourquoi une fonction et pas un alias ?**
+> Un alias lance un sous-processus — son `cd` ne peut pas affecter le shell parent.
+> La fonction `wt()` lit le chemin cible dans `.cd_path` (écrit par le script) et fait le `cd` dans le shell courant.
+> La logique est entièrement dans le script : `wt update` suffit pour tout mettre à jour.
+
+### 2b. Fonction shell (fish)
+
+Ajouter dans `~/.config/fish/config.fish` :
+
+```fish
+# Git Worktree Manager
+function wt
+  set cd_path_file $HOME/.local/share/git-worktree/.cd_path
+  rm -f $cd_path_file
+  bash $HOME/.local/share/git-worktree/worktree-manager.sh $argv
+  set exit_code $status
+  test $exit_code -ne 0; and return $exit_code
+  if test -f $cd_path_file
+    set cd_path (cat $cd_path_file)
+    rm -f $cd_path_file
+    test -n "$cd_path"; and cd $cd_path
+  end
+end
 ```
 
 ---
 
-## 2a. Claude Code CLI
+## Intégration IA
+
+### Claude Code CLI
 
 ```bash
-mkdir -p ~/.claude/commands
-mkdir -p ~/.claude/scripts/git-worktree
-cp claude-code/SKILL.md ~/.claude/commands/git-worktree.md
-cp worktree-manager.sh ~/.claude/scripts/git-worktree/worktree-manager.sh
-chmod +x ~/.claude/scripts/git-worktree/worktree-manager.sh
+mkdir -p ~/.claude/commands ~/.claude/scripts/git-worktree
+curl -sSL https://raw.githubusercontent.com/nayzo/ai-skills/main/git-worktree/claude-code/SKILL.md \
+  -o ~/.claude/commands/git-worktree.md
+cp ~/.local/share/git-worktree/worktree-manager.sh ~/.claude/scripts/git-worktree/worktree-manager.sh
 ```
 
 Utilisation dans Claude Code :
@@ -46,13 +104,12 @@ Utilisation dans Claude Code :
 /git-worktree migrate feat/ALM-1234/ma-feature
 ```
 
----
-
-## 2b. OpenCode
+### OpenCode
 
 ```bash
 mkdir -p ~/.config/opencode/plugins/git-worktree
-cp opencode/plugin.ts ~/.config/opencode/plugins/git-worktree/plugin.ts
+curl -sSL https://raw.githubusercontent.com/nayzo/ai-skills/main/git-worktree/opencode/plugin.ts \
+  -o ~/.config/opencode/plugins/git-worktree/plugin.ts
 ```
 
 Ajouter dans `~/.config/opencode/config.json` :
@@ -62,44 +119,18 @@ Ajouter dans `~/.config/opencode/config.json` :
 }
 ```
 
-Utilisation dans OpenCode — en langage naturel :
-```
-crée un worktree pour feat/ALM-1234/ma-feature
-liste mes worktrees
-j'ai du code non commité, migre-le vers feat/ALM-1234/ma-feature
-```
-
----
-
-## 2c. Cursor
+### Cursor
 
 Dans le projet (une fois) :
 ```bash
 mkdir -p .cursor/rules
-cp cursor/git-worktree.mdc .cursor/rules/
-```
-
-Cursor charge automatiquement les règles `.cursor/rules/*.mdc`.
-Mentionner `@git-worktree` ou demander de créer un worktree dans Composer.
-
----
-
-## 2d. Usage standalone (sans IA)
-
-```bash
-# Alias court
-wt create feat/ALM-1234/ma-feature
-wt list
-wt migrate feat/ALM-1234/ma-feature
-wt cleanup
-
-# Ou via Makefile (ajouter dans le projet) :
-# make worktree BRANCH=feat/ALM-1234/ma-feature
+curl -sSL https://raw.githubusercontent.com/nayzo/ai-skills/main/git-worktree/cursor/git-worktree.mdc \
+  -o .cursor/rules/git-worktree.mdc
 ```
 
 ---
 
-## Structure créée
+## Structure créée dans le projet
 
 ```
 monrepo/
@@ -112,3 +143,11 @@ monrepo/
     │   └── src/              (branch checkout)
     └── fix/hotfix/           ← autre worktree
 ```
+
+## Mise à jour
+
+```bash
+wt update
+```
+
+Met à jour `worktree-manager.sh` depuis GitHub. La fonction `wt()` dans ton rc file n'a pas besoin d'être modifiée.
