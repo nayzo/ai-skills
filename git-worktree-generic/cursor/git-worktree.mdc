@@ -1,0 +1,66 @@
+---
+description: Git worktree manager — create and manage isolated working directories for parallel branch development
+globs:
+alwaysApply: false
+---
+
+# Git Worktree Manager
+
+## Script
+
+The worktree manager script is at: `~/.local/share/git-worktree/worktree-manager.sh`
+
+Run it with: `bash ~/.local/share/git-worktree/worktree-manager.sh <command> [args]`
+
+## When to use
+
+Use this skill when the user asks to:
+- Create a worktree / start working on a new branch in isolation
+- Switch between branches without losing work in progress
+- Handle an urgent hotfix while a feature is in progress
+- Move uncommitted code to a new branch (migrate)
+- List or clean up worktrees
+
+## Commands
+
+```bash
+# Create a new isolated worktree (copies .env*, symlinks vendor/)
+bash ~/.local/share/git-worktree/worktree-manager.sh create feat/ALM-1234/my-feature
+
+# Create from a specific base branch
+bash ~/.local/share/git-worktree/worktree-manager.sh create fix/ALM-5678/hotfix main
+
+# Migrate uncommitted changes from current dir to a new worktree
+bash ~/.local/share/git-worktree/worktree-manager.sh migrate feat/ALM-1234/my-feature
+
+# List all worktrees
+bash ~/.local/share/git-worktree/worktree-manager.sh list
+
+# Copy .env files to an existing worktree
+bash ~/.local/share/git-worktree/worktree-manager.sh copy-env feat/ALM-1234/my-feature
+
+# Clean up finished worktrees
+bash ~/.local/share/git-worktree/worktree-manager.sh cleanup
+```
+
+## Worktree location
+
+Worktrees are created under `.worktrees/<branch>` in the repository root.
+
+Example: `.worktrees/feat/ALM-1234/my-feature`
+
+## After creating a worktree
+
+Always tell the user to open the worktree path in a new terminal or IDE window:
+
+```bash
+cd .worktrees/feat/ALM-1234/my-feature
+```
+
+## Notes
+
+- `vendor/` is symlinked, not copied — no need to run `composer install` again
+- `.env*` files are copied automatically from the main repo
+- Each worktree is fully independent: separate working directory, separate git index
+- The same branch cannot be checked out in two worktrees simultaneously
+- `.worktrees/` is automatically added to `.gitignore`
