@@ -163,8 +163,42 @@ for choice in $ai_choices; do
       mkdir -p "$HOME/.config/opencode/plugins/git-worktree"
       curl -sSL "$BASE_URL/opencode/plugin.ts" -o "$HOME/.config/opencode/plugins/git-worktree/plugin.ts"
       echo -e "  ${GREEN}✓ Plugin → ~/.config/opencode/plugins/git-worktree/plugin.ts${NC}"
-      echo -e "  ${YELLOW}  Ajoute dans ~/.config/opencode/config.json :${NC}"
-      echo -e '  { "plugins": ["~/.config/opencode/plugins/git-worktree/plugin.ts"] }'
+
+      # Auto-update config.json
+      local oc_config="$HOME/.config/opencode/config.json"
+      local plugin_entry="$HOME/.config/opencode/plugins/git-worktree/plugin.ts"
+      if command -v python3 &>/dev/null; then
+        python3 - "$oc_config" "$plugin_entry" << 'PYEOF'
+import json, sys, os
+config_file, plugin_path = sys.argv[1], sys.argv[2]
+try:
+    with open(config_file) as f:
+        config = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError):
+    config = {}
+plugins = config.get("plugins", [])
+if plugin_path not in plugins:
+    plugins.append(plugin_path)
+config["plugins"] = plugins
+os.makedirs(os.path.dirname(config_file), exist_ok=True)
+with open(config_file, "w") as f:
+    json.dump(config, f, indent=2)
+PYEOF
+        echo -e "  ${GREEN}✓ Plugin enregistré dans $oc_config${NC}"
+      elif command -v jq &>/dev/null; then
+        if [[ -f "$oc_config" ]]; then
+          local tmp; tmp=$(mktemp)
+          jq --arg p "$plugin_entry" '.plugins = ((.plugins // []) + [$p] | unique)' "$oc_config" > "$tmp" && mv "$tmp" "$oc_config"
+        else
+          mkdir -p "$(dirname "$oc_config")"
+          echo "{\"plugins\": [\"$plugin_entry\"]}" > "$oc_config"
+        fi
+        echo -e "  ${GREEN}✓ Plugin enregistré dans $oc_config${NC}"
+      else
+        echo -e "  ${YELLOW}  python3/jq introuvable — ajoute manuellement dans $oc_config :${NC}"
+        echo -e "  { \"plugins\": [\"$plugin_entry\"] }"
+      fi
+      echo -e "  ${YELLOW}  Usage : demande à OpenCode 'wt create feat/ALM-xxx/desc' ou utilise directement : wt create feat/ALM-xxx/desc${NC}"
       ;;
     4)
       echo -e "  ${GREEN}✓ Standalone uniquement${NC}"

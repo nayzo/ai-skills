@@ -2775,27 +2775,31 @@ section::after { color: #8b949e; font-size: 0.72em; }
 ;" data-marpit-pagination-total="26">
 <header><strong>Git Worktrees</strong> · Le Monde · Équipe Abonnements</header>
 <h2 id="opencode--plugin-typescript">OpenCode : Plugin TypeScript</h2>
-<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-typescript"><span class="hljs-comment">// ~/.config/opencode/plugins/git-worktree/plugin.ts</span>
-<span class="hljs-keyword">import</span> { tool } <span class="hljs-keyword">from</span> <span class="hljs-string">&quot;@opencode-ai/plugin&quot;</span>;
+<p>L'install enregistre le plugin <strong>et met à jour <code>config.json</code> automatiquement</strong>.</p>
+<div class="columns">
+<div>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-typescript"><span class="hljs-comment">// plugin installé dans :</span>
+<span class="hljs-comment">// ~/.config/opencode/plugins/git-worktree/plugin.ts</span>
 
-<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-title function_">async</span> (ctx) =&gt; ({
-  <span class="hljs-attr">tool</span>: {
-    <span class="hljs-attr">worktree_create</span>: <span class="hljs-title function_">tool</span>({
-      <span class="hljs-attr">description</span>: <span class="hljs-string">&quot;Create a new git worktree for a feature or fix branch&quot;</span>,
-      <span class="hljs-attr">args</span>: {
-        <span class="hljs-attr">branch</span>: tool.<span class="hljs-property">schema</span>.<span class="hljs-title function_">string</span>().<span class="hljs-title function_">describe</span>(<span class="hljs-string">&quot;e.g. feat/ALM-1234/my-feature&quot;</span>),
-        <span class="hljs-attr">from_branch</span>: tool.<span class="hljs-property">schema</span>.<span class="hljs-title function_">string</span>().<span class="hljs-title function_">optional</span>(),
-      },
-      <span class="hljs-keyword">async</span> <span class="hljs-title function_">execute</span>(<span class="hljs-params">{ branch, from_branch }</span>) {
-        <span class="hljs-keyword">const</span> args = from_branch ? <span class="hljs-string">`create <span class="hljs-subst">${branch}</span> <span class="hljs-subst">${from_branch}</span>`</span> : <span class="hljs-string">`create <span class="hljs-subst">${branch}</span>`</span>;
-        <span class="hljs-keyword">return</span> <span class="hljs-title function_">execSync</span>(<span class="hljs-string">`bash ~/.local/share/git-worktree/worktree-manager.sh <span class="hljs-subst">${args}</span>`</span>);
-      },
-    }),
-    <span class="hljs-comment">// + worktree_migrate, worktree_list, worktree_cleanup, worktree_copy_env</span>
-  },
-});
+<span class="hljs-comment">// config.json mis à jour automatiquement :</span>
+{
+  <span class="hljs-string">&quot;plugins&quot;</span>: [
+    <span class="hljs-string">&quot;~/.config/opencode/plugins/git-worktree/plugin.ts&quot;</span>
+  ]
+}
 </code></pre>
-<p><strong>Utilisation :</strong> <em>&quot;crée un worktree pour feat/ALM-1234/ma-feature&quot;</em></p>
+</div>
+<div>
+<h3 id="important">Important</h3>
+<p>OpenCode peut utiliser son bash natif au lieu du plugin si la demande est trop générique.</p>
+<div class="card card-orange">
+<p>Toujours préférer la commande directe :</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash">wt create feat/ALM-1234/ma-feature
+</code></pre>
+<p>OpenCode exécutera le script via son outil bash, avec le bon chemin, symlink vendor et copie .env.</p>
+</div>
+</div>
+</div>
 <footer>Mars 2026</footer>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="24" data-paginate="true" data-header="**Git Worktrees** · Le Monde · Équipe Abonnements" data-footer="Mars 2026" data-theme="default" data-style="section {
