@@ -37,11 +37,13 @@ echo -e "  ${GREEN}✓ Installed at $SCRIPT_PATH${NC}"
 echo ""
 echo -e "${BLUE}[2/3] Setting up shell alias...${NC}"
 
-add_alias() {
+OS="$(uname -s)"
+
+add_alias_to_file() {
   local rc_file="$1"
   local alias_line='alias wt="bash $HOME/.local/share/git-worktree/worktree-manager.sh"'
 
-  if [[ -f "$rc_file" ]] && grep -q "worktree-manager" "$rc_file" 2>/dev/null; then
+  if grep -q "worktree-manager" "$rc_file" 2>/dev/null; then
     echo -e "  ${YELLOW}⚠  Alias already present in $rc_file, skipping${NC}"
   else
     echo "" >> "$rc_file"
@@ -51,13 +53,48 @@ add_alias() {
   fi
 }
 
-if [[ "$SHELL" == *"zsh"* ]]; then
-  add_alias "$HOME/.zshrc"
-elif [[ "$SHELL" == *"bash"* ]]; then
-  add_alias "$HOME/.bashrc"
-else
-  add_alias "$HOME/.profile"
-fi
+add_alias_fish() {
+  local fish_config="$HOME/.config/fish/config.fish"
+  local func_block='# Git Worktree Manager
+function wt
+    bash $HOME/.local/share/git-worktree/worktree-manager.sh $argv
+end'
+
+  if grep -q "worktree-manager" "$fish_config" 2>/dev/null; then
+    echo -e "  ${YELLOW}⚠  Alias already present in $fish_config, skipping${NC}"
+  else
+    mkdir -p "$(dirname "$fish_config")"
+    echo "" >> "$fish_config"
+    echo "$func_block" >> "$fish_config"
+    echo -e "  ${GREEN}✓ Function added to $fish_config${NC}"
+  fi
+}
+
+SOURCED_FILE=""
+case "$SHELL" in
+  */zsh)
+    add_alias_to_file "$HOME/.zshrc"
+    SOURCED_FILE="$HOME/.zshrc"
+    ;;
+  */bash)
+    if [[ "$OS" == "Darwin" ]]; then
+      # Mac: .bash_profile est sourcé au login, .bashrc ne l'est pas
+      add_alias_to_file "$HOME/.bash_profile"
+      SOURCED_FILE="$HOME/.bash_profile"
+    else
+      add_alias_to_file "$HOME/.bashrc"
+      SOURCED_FILE="$HOME/.bashrc"
+    fi
+    ;;
+  */fish)
+    add_alias_fish
+    SOURCED_FILE="$HOME/.config/fish/config.fish"
+    ;;
+  *)
+    add_alias_to_file "$HOME/.profile"
+    SOURCED_FILE="$HOME/.profile"
+    ;;
+esac
 
 # --- 3. AI tool integration ---
 echo ""
@@ -123,7 +160,7 @@ echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${GREEN}${BOLD}Installation terminée !${NC}"
 echo ""
-echo -e "  Recharge ton shell : ${BOLD}source ~/.zshrc${NC}  (ou ouvre un nouveau terminal)"
+echo -e "  Recharge ton shell : ${BOLD}source $SOURCED_FILE${NC}  (ou ouvre un nouveau terminal)"
 echo ""
 echo -e "  Commandes disponibles :"
 echo -e "    ${BOLD}wt create feat/ALM-1234/ma-feature${NC}"
