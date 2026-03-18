@@ -1,6 +1,6 @@
 #!/bin/bash
 # Git Worktree Manager — Installer
-# Usage: curl -sSL https://raw.githubusercontent.com/nayzo/ai-skills/main/git-worktree-generic/install.sh | bash
+# Usage: curl -sSL https://raw.githubusercontent.com/nayzo/ai-skills/main/git-worktree/install.sh | bash
 
 set -e
 
@@ -11,7 +11,7 @@ BLUE='\033[0;34m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-BASE_URL="https://raw.githubusercontent.com/nayzo/ai-skills/main/git-worktree-generic"
+BASE_URL="https://raw.githubusercontent.com/nayzo/ai-skills/main/git-worktree"
 INSTALL_DIR="$HOME/.local/share/git-worktree"
 SCRIPT_PATH="$INSTALL_DIR/worktree-manager.sh"
 

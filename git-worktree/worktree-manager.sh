@@ -170,21 +170,24 @@ list_worktrees() {
   fi
 
   local count=0
-  for worktree_path in "$WORKTREE_DIR"/*; do
-    if [[ -d "$worktree_path" && -e "$worktree_path/.git" ]]; then
-      count=$((count + 1))
-      local worktree_name
-      worktree_name=$(basename "$worktree_path")
-      local branch
-      branch=$(git -C "$worktree_path" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+  while IFS= read -r git_file; do
+    local worktree_path
+    worktree_path=$(dirname "$git_file")
+    count=$((count + 1))
 
-      if [[ "$PWD" == "$worktree_path" ]]; then
-        echo -e "${GREEN}✓ $worktree_name${NC} (current) → branch: $branch"
-      else
-        echo -e "  $worktree_name → branch: $branch"
-      fi
+    # Affiche le chemin relatif depuis .worktrees/ pour lisibilité
+    local worktree_name
+    worktree_name="${worktree_path#$WORKTREE_DIR/}"
+
+    local branch
+    branch=$(git -C "$worktree_path" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+
+    if [[ "$PWD" == "$worktree_path" ]]; then
+      echo -e "${GREEN}✓ $worktree_name${NC} (current) → branch: $branch"
+    else
+      echo -e "  $worktree_name → branch: $branch"
     fi
-  done
+  done < <(find "$WORKTREE_DIR" -name ".git" -not -path "*/.git/*" 2>/dev/null | sort)
 
   echo ""
   if [[ $count -eq 0 ]]; then
@@ -320,23 +323,23 @@ cleanup_worktrees() {
   local found=0
   local to_remove=()
 
-  for worktree_path in "$WORKTREE_DIR"/*; do
-    if [[ -d "$worktree_path" && -e "$worktree_path/.git" ]]; then
-      local worktree_name
-      worktree_name=$(basename "$worktree_path")
+  while IFS= read -r git_file; do
+    local worktree_path
+    worktree_path=$(dirname "$git_file")
+    local worktree_name
+    worktree_name="${worktree_path#$WORKTREE_DIR/}"
 
-      if [[ "$PWD" == "$worktree_path" ]]; then
-        echo -e "${YELLOW}(skip) $worktree_name — currently active${NC}"
-        continue
-      fi
-
-      found=$((found + 1))
-      to_remove+=("$worktree_path")
-      local branch
-      branch=$(git -C "$worktree_path" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
-      echo -e "${YELLOW}• $worktree_name${NC} (branch: $branch)"
+    if [[ "$PWD" == "$worktree_path" ]]; then
+      echo -e "${YELLOW}(skip) $worktree_name — currently active${NC}"
+      continue
     fi
-  done
+
+    found=$((found + 1))
+    to_remove+=("$worktree_path")
+    local branch
+    branch=$(git -C "$worktree_path" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+    echo -e "${YELLOW}• $worktree_name${NC} (branch: $branch)"
+  done < <(find "$WORKTREE_DIR" -name ".git" -not -path "*/.git/*" 2>/dev/null | sort)
 
   if [[ $found -eq 0 ]]; then
     echo -e "${GREEN}No inactive worktrees to clean up${NC}"
@@ -371,6 +374,34 @@ cleanup_worktrees() {
   echo -e "${GREEN}Cleanup complete!${NC}"
 }
 
+SCRIPT_URL="https://raw.githubusercontent.com/nayzo/ai-skills/main/git-worktree/worktree-manager.sh"
+SCRIPT_SELF="${BASH_SOURCE[0]}"
+
+# Self-update from GitHub
+update_self() {
+  echo -e "${BLUE}Updating worktree-manager.sh...${NC}"
+
+  if ! command -v curl &>/dev/null; then
+    echo -e "${RED}Error: curl is required for updates${NC}"
+    exit 1
+  fi
+
+  local tmp_file
+  tmp_file=$(mktemp)
+
+  if curl -sSL "$SCRIPT_URL" -o "$tmp_file"; then
+    chmod +x "$tmp_file"
+    mv "$tmp_file" "$SCRIPT_SELF"
+    echo -e "${GREEN}✓ Updated successfully${NC}"
+    echo -e "  Source: ${BLUE}$SCRIPT_URL${NC}"
+    echo -e "  Target: $SCRIPT_SELF"
+  else
+    rm -f "$tmp_file"
+    echo -e "${RED}Error: failed to download update${NC}"
+    exit 1
+  fi
+}
+
 show_help() {
   cat << EOF
 Git Worktree Manager
@@ -386,6 +417,7 @@ Commands:
   switch | go [name]       Switch to a worktree (or 'main' to go back)
   copy-env | env [name]    Copy .env files from main repo to worktree
   cleanup | clean          Interactively remove inactive worktrees
+  update                   Update this script to the latest version from GitHub
   help                     Show this help
 
 Examples:
@@ -396,6 +428,7 @@ Examples:
   worktree-manager.sh switch feat/ALM-1234/my-feature
   worktree-manager.sh copy-env feat/ALM-1234/my-feature
   worktree-manager.sh cleanup
+  worktree-manager.sh update
 
 Notes:
   - Worktrees are stored in .worktrees/ (auto-added to .gitignore)
@@ -416,6 +449,7 @@ main() {
     switch|go)     switch_worktree "$2" ;;
     copy-env|env)  copy_env_to_worktree "$2" ;;
     cleanup|clean) cleanup_worktrees ;;
+    update)        update_self ;;
     help|-h|--help) show_help ;;
     *)
       echo -e "${RED}Unknown command: $command${NC}"
