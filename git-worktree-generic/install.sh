@@ -46,10 +46,18 @@ add_alias_to_file() {
   if grep -q "worktree-manager" "$rc_file" 2>/dev/null; then
     echo -e "  ${YELLOW}⚠  Alias already present in $rc_file, skipping${NC}"
   else
+    local created=false
+    if [[ ! -f "$rc_file" ]]; then
+      created=true
+    fi
     echo "" >> "$rc_file"
     echo "# Git Worktree Manager" >> "$rc_file"
     echo "$alias_line" >> "$rc_file"
-    echo -e "  ${GREEN}✓ Alias added to $rc_file${NC}"
+    if [[ "$created" == true ]]; then
+      echo -e "  ${GREEN}✓ $rc_file created and alias added${NC}"
+    else
+      echo -e "  ${GREEN}✓ Alias added to $rc_file${NC}"
+    fi
   fi
 }
 
