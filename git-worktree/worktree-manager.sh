@@ -17,6 +17,15 @@ NC='\033[0m' # No Color
 GIT_ROOT=$(git rev-parse --show-toplevel)
 WORKTREE_DIR="$GIT_ROOT/.worktrees"
 
+# File used to pass the target cd path back to the parent shell's wt() wrapper
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CD_PATH_FILE="$SCRIPT_DIR/.cd_path"
+
+# Write the path the parent shell should cd into after this script exits
+write_cd_path() {
+  echo "$1" > "$CD_PATH_FILE"
+}
+
 # Ensure .worktrees is in .gitignore
 ensure_gitignore() {
   if ! grep -q "worktrees" "$GIT_ROOT/.gitignore" 2>/dev/null; then
@@ -144,9 +153,7 @@ create_worktree() {
 
   echo ""
   echo -e "${GREEN}✓ Worktree created successfully!${NC}"
-  echo ""
-  echo "To switch to this worktree:"
-  echo -e "${BLUE}cd $worktree_path${NC}"
+  write_cd_path "$worktree_path"
 }
 
 # List all worktrees
@@ -210,8 +217,7 @@ switch_worktree() {
 
   if [[ "$worktree_name" == "main" ]]; then
     echo -e "${GREEN}Switching to main repo: $GIT_ROOT${NC}"
-    cd "$GIT_ROOT"
-    echo -e "${BLUE}Now in: $(pwd)${NC}"
+    write_cd_path "$GIT_ROOT"
     return
   fi
 
@@ -225,8 +231,7 @@ switch_worktree() {
   fi
 
   echo -e "${GREEN}Switching to worktree: $worktree_name${NC}"
-  cd "$worktree_path"
-  echo -e "${BLUE}Now in: $(pwd)${NC}"
+  write_cd_path "$worktree_path"
 }
 
 # Copy env files to an existing worktree
@@ -305,9 +310,7 @@ migrate_to_worktree() {
 
   echo ""
   echo -e "${GREEN}✓ Migration complete!${NC}"
-  echo ""
-  echo "To switch to this worktree:"
-  echo -e "${BLUE}cd $worktree_path${NC}"
+  write_cd_path "$worktree_path"
 }
 
 # Clean up worktrees — interactive multi-select

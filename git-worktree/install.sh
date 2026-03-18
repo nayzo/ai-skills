@@ -56,33 +56,17 @@ add_alias_to_file() {
 
 # Git Worktree Manager
 wt() {
-  local script="$HOME/.local/share/git-worktree/worktree-manager.sh"
-  local cmd="${1:-list}"
-  local branch_name="$2"   # $1=cmd $2=branch $3=from (optional)
-
-  bash "$script" "$@"
+  local cd_path_file="$HOME/.local/share/git-worktree/.cd_path"
+  rm -f "$cd_path_file"
+  bash "$HOME/.local/share/git-worktree/worktree-manager.sh" "$@"
   local exit_code=$?
   [[ $exit_code -ne 0 ]] && return $exit_code
-
-  # cd must happen in the current shell — a subshell can't change the parent's CWD
-  local git_root
-  git_root=$(git rev-parse --show-toplevel 2>/dev/null) || return 0
-
-  case "$cmd" in
-    switch|go)
-      if [[ "$branch_name" == "main" ]]; then
-        cd "$git_root"
-      elif [[ -n "$branch_name" ]]; then
-        cd "$git_root/.worktrees/$branch_name"
-      fi
-      # Interactive mode (no arg): path printed by script above, cd manually
-      ;;
-    create|migrate|mv)
-      # $branch_name is the new worktree name (3rd arg = from-branch, ignored here)
-      [[ -n "$branch_name" ]] && cd "$git_root/.worktrees/$branch_name"
-      ;;
-    # list|ls, copy-env|env, cleanup|clean, update, help: no cd needed
-  esac
+  local cd_path
+  cd_path=$(cat "$cd_path_file" 2>/dev/null)
+  if [[ -n "$cd_path" ]]; then
+    rm -f "$cd_path_file"
+    cd "$cd_path"
+  fi
 }
 ENDOFWT
     echo -e "  ${GREEN}✓ Function added to $rc_file${NC}"
@@ -115,27 +99,15 @@ add_alias_fish() {
 
 # Git Worktree Manager
 function wt
-  set script $HOME/.local/share/git-worktree/worktree-manager.sh
-  set cmd (count $argv > /dev/null; and echo $argv[1]; or echo list)
-  set branch_name ""
-  test (count $argv) -ge 2; and set branch_name $argv[2]
-
-  bash $script $argv
+  set cd_path_file $HOME/.local/share/git-worktree/.cd_path
+  rm -f $cd_path_file
+  bash $HOME/.local/share/git-worktree/worktree-manager.sh $argv
   set exit_code $status
   test $exit_code -ne 0; and return $exit_code
-
-  set git_root (git rev-parse --show-toplevel 2>/dev/null)
-  test $status -ne 0; and return 0
-
-  switch $cmd
-    case switch go
-      if test "$branch_name" = main
-        cd $git_root
-      else if test -n "$branch_name"
-        cd $git_root/.worktrees/$branch_name
-      end
-    case create migrate mv
-      test -n "$branch_name"; and cd $git_root/.worktrees/$branch_name
+  if test -f $cd_path_file
+    set cd_path (cat $cd_path_file)
+    rm -f $cd_path_file
+    test -n "$cd_path"; and cd $cd_path
   end
 end
 ENDOFWT
