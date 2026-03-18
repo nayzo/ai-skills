@@ -2896,28 +2896,22 @@ section::after { color: #8b949e; font-size: 0.72em; }
 .hero-sub { font-size: 1.3em; color: #8b949e; margin-top: 0.8em; }
 ;" data-marpit-pagination-total="26">
 <header><strong>Git Worktrees</strong> · Le Monde · Équipe Abonnements</header>
-<h2 id="installation-en-2-minutes">Installation en 2 minutes</h2>
-<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash"><span class="hljs-comment"># 1. Copier le script</span>
-<span class="hljs-built_in">mkdir</span> -p ~/.local/share/git-worktree
-<span class="hljs-built_in">cp</span> worktree-manager.sh ~/.local/share/git-worktree/
-<span class="hljs-built_in">chmod</span> +x ~/.local/share/git-worktree/worktree-manager.sh
+<h2 id="installation-en-1-commande">Installation en 1 commande</h2>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash">curl -sSL https://raw.githubusercontent.com/nayzo/ai-skills/main/git-worktree-generic/install.sh | bash
+</code></pre>
+<p>Le script installe tout et pose une seule question :</p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code>Quel outil IA utilises-tu ? (plusieurs choix possibles, ex: 1 3)
+  1) Claude Code
+  2) Cursor
+  3) OpenCode
+  4) Aucun (standalone uniquement)
 
-<span class="hljs-comment"># 2a. Claude Code</span>
-<span class="hljs-built_in">mkdir</span> -p ~/.claude/commands ~/.claude/scripts/git-worktree
-<span class="hljs-built_in">cp</span> claude-code/SKILL.md ~/.claude/commands/git-worktree.md
-<span class="hljs-built_in">cp</span> worktree-manager.sh ~/.claude/scripts/git-worktree/
-
-<span class="hljs-comment"># 2b. OpenCode</span>
-<span class="hljs-built_in">mkdir</span> -p ~/.config/opencode/plugins/git-worktree
-<span class="hljs-built_in">cp</span> opencode/plugin.ts ~/.config/opencode/plugins/git-worktree/
-
-<span class="hljs-comment"># 2c. Cursor (dans le projet)</span>
-<span class="hljs-built_in">mkdir</span> -p .cursor/rules
-<span class="hljs-built_in">cp</span> cursor/git-worktree.mdc .cursor/rules/
-
-<span class="hljs-comment"># 3. Alias pratique (optionnel)</span>
-<span class="hljs-built_in">echo</span> <span class="hljs-string">&#x27;alias wt=&quot;bash ~/.local/share/git-worktree/worktree-manager.sh&quot;&#x27;</span> &gt;&gt; ~/.zshrc
-<span class="hljs-comment"># → wt create feat/ALM-1234/desc</span>
+Ton choix :
+</code></pre>
+<p>Configure automatiquement selon la réponse : alias <code>wt</code>, intégration IA, détection du shell (zsh / bash / fish) et de l'OS (Mac / Linux).</p>
+<br />
+<p><strong>Mise à jour :</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash">wt update   <span class="hljs-comment"># re-télécharge la dernière version depuis GitHub</span>
 </code></pre>
 <footer>Mars 2026</footer>
 </section>
@@ -3024,18 +3018,21 @@ section::after { color: #8b949e; font-size: 0.72em; }
 <div>
 <h3 id="ce-que-je-propose">Ce que je propose</h3>
 <ul>
-<li><strong>Script</strong> disponible dans le repo sous <code>.claude/scripts/git-worktree/</code></li>
-<li><strong>Makefile target</strong> à ajouter :</li>
+<li><strong>Install one-liner</strong> à partager dans le README équipe :</li>
+</ul>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash">curl -sSL https://raw.githubusercontent.com/nayzo/\
+ai-skills/main/git-worktree-generic/install.sh | bash
+</code></pre>
+<ul>
+<li><strong>Makefile target</strong> (optionnel) :</li>
 </ul>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-makefile"><span class="hljs-section">worktree: ## Usage: make worktree BRANCH=feat/ALM-XXXX/desc</span>
   @[ -n <span class="hljs-string">&quot;<span class="hljs-variable">$(BRANCH)</span>&quot;</span> ] || \
     (echo <span class="hljs-string">&quot;Usage: make worktree BRANCH=...&quot;</span>; exit 1)
-  bash .claude/scripts/git-worktree/\
-    worktree-manager.sh create <span class="hljs-variable">$(BRANCH)</span>
+  wt create <span class="hljs-variable">$(BRANCH)</span>
 </code></pre>
 <ul>
-<li><strong>README</strong> dans le dépôt</li>
-<li><strong>Skill IA</strong> pour ceux qui utilisent un assistant</li>
+<li><strong>Skill IA</strong> configuré au choix : Claude Code, Cursor, OpenCode</li>
 </ul>
 </div>
 <div>
