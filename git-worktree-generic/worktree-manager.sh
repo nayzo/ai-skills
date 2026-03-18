@@ -371,6 +371,34 @@ cleanup_worktrees() {
   echo -e "${GREEN}Cleanup complete!${NC}"
 }
 
+SCRIPT_URL="https://raw.githubusercontent.com/nayzo/ai-skills/main/git-worktree-generic/worktree-manager.sh"
+SCRIPT_SELF="${BASH_SOURCE[0]}"
+
+# Self-update from GitHub
+update_self() {
+  echo -e "${BLUE}Updating worktree-manager.sh...${NC}"
+
+  if ! command -v curl &>/dev/null; then
+    echo -e "${RED}Error: curl is required for updates${NC}"
+    exit 1
+  fi
+
+  local tmp_file
+  tmp_file=$(mktemp)
+
+  if curl -sSL "$SCRIPT_URL" -o "$tmp_file"; then
+    chmod +x "$tmp_file"
+    mv "$tmp_file" "$SCRIPT_SELF"
+    echo -e "${GREEN}✓ Updated successfully${NC}"
+    echo -e "  Source: ${BLUE}$SCRIPT_URL${NC}"
+    echo -e "  Target: $SCRIPT_SELF"
+  else
+    rm -f "$tmp_file"
+    echo -e "${RED}Error: failed to download update${NC}"
+    exit 1
+  fi
+}
+
 show_help() {
   cat << EOF
 Git Worktree Manager
@@ -386,6 +414,7 @@ Commands:
   switch | go [name]       Switch to a worktree (or 'main' to go back)
   copy-env | env [name]    Copy .env files from main repo to worktree
   cleanup | clean          Interactively remove inactive worktrees
+  update                   Update this script to the latest version from GitHub
   help                     Show this help
 
 Examples:
@@ -396,6 +425,7 @@ Examples:
   worktree-manager.sh switch feat/ALM-1234/my-feature
   worktree-manager.sh copy-env feat/ALM-1234/my-feature
   worktree-manager.sh cleanup
+  worktree-manager.sh update
 
 Notes:
   - Worktrees are stored in .worktrees/ (auto-added to .gitignore)
@@ -416,6 +446,7 @@ main() {
     switch|go)     switch_worktree "$2" ;;
     copy-env|env)  copy_env_to_worktree "$2" ;;
     cleanup|clean) cleanup_worktrees ;;
+    update)        update_self ;;
     help|-h|--help) show_help ;;
     *)
       echo -e "${RED}Unknown command: $command${NC}"
