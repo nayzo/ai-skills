@@ -310,18 +310,19 @@ migrate_to_worktree() {
   echo -e "${BLUE}cd $worktree_path${NC}"
 }
 
-# Clean up completed worktrees
+# Clean up worktrees — interactive multi-select
 cleanup_worktrees() {
   if [[ ! -d "$WORKTREE_DIR" ]]; then
     echo -e "${YELLOW}No worktrees to clean up${NC}"
     return
   fi
 
-  echo -e "${BLUE}Checking for worktrees to remove...${NC}"
+  echo -e "${BLUE}Inactive worktrees:${NC}"
   echo ""
 
-  local found=0
-  local to_remove=()
+  local names=()
+  local paths=()
+  local idx=0
 
   while IFS= read -r git_file; do
     local worktree_path
@@ -330,48 +331,64 @@ cleanup_worktrees() {
     worktree_name="${worktree_path#$WORKTREE_DIR/}"
 
     if [[ "$PWD" == "$worktree_path" ]]; then
-      echo -e "${YELLOW}(skip) $worktree_name — currently active${NC}"
+      echo -e "  ${YELLOW}(skip) $worktree_name — currently active${NC}"
       continue
     fi
 
-    found=$((found + 1))
-    to_remove+=("$worktree_path")
+    idx=$((idx + 1))
+    names+=("$worktree_name")
+    paths+=("$worktree_path")
     local branch
     branch=$(git -C "$worktree_path" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
-    echo -e "${YELLOW}• $worktree_name${NC} (branch: $branch)"
+    echo -e "  ${YELLOW}$idx)${NC} $worktree_name ${BLUE}(branch: $branch)${NC}"
   done < <(find "$WORKTREE_DIR" -name ".git" -not -path "*/.git/*" 2>/dev/null | sort)
 
-  if [[ $found -eq 0 ]]; then
+  if [[ $idx -eq 0 ]]; then
     echo -e "${GREEN}No inactive worktrees to clean up${NC}"
     return
   fi
 
   echo ""
-  echo -e "Remove $found worktree(s)? (y/n)"
-  read -r response
+  echo -e "Remove which? (${YELLOW}1 3${NC} / ${YELLOW}all${NC} / ${YELLOW}q${NC} to quit)"
+  printf "  > "
+  read -r selection
 
-  if [[ "$response" != "y" ]]; then
-    echo -e "${YELLOW}Cleanup cancelled${NC}"
+  [[ "$selection" == "q" || -z "$selection" ]] && { echo -e "${YELLOW}Cancelled${NC}"; return; }
+
+  local selected_paths=()
+  if [[ "$selection" == "all" ]]; then
+    selected_paths=("${paths[@]}")
+  else
+    for num in $selection; do
+      if [[ "$num" =~ ^[0-9]+$ ]] && (( num >= 1 && num <= idx )); then
+        selected_paths+=("${paths[$((num - 1))]}")
+      else
+        echo -e "  ${YELLOW}Ignored: $num${NC}"
+      fi
+    done
+  fi
+
+  if [[ ${#selected_paths[@]} -eq 0 ]]; then
+    echo -e "${YELLOW}Nothing selected${NC}"
     return
   fi
 
-  echo -e "${BLUE}Cleaning up...${NC}"
-  for worktree_path in "${to_remove[@]}"; do
+  echo -e "${BLUE}Removing...${NC}"
+  for worktree_path in "${selected_paths[@]}"; do
     local worktree_name
-    worktree_name=$(basename "$worktree_path")
+    worktree_name="${worktree_path#$WORKTREE_DIR/}"
     git worktree remove "$worktree_path" --force 2>/dev/null || rm -rf "$worktree_path"
-    echo -e "${GREEN}✓ Removed: $worktree_name${NC}"
+    echo -e "  ${GREEN}✓ Removed: $worktree_name${NC}"
   done
 
   git worktree prune
 
-  # Remove empty .worktrees dir
   if [[ -z "$(ls -A "$WORKTREE_DIR" 2>/dev/null)" ]]; then
     rmdir "$WORKTREE_DIR" 2>/dev/null || true
     echo -e "${GREEN}✓ Removed empty .worktrees/ directory${NC}"
   fi
 
-  echo -e "${GREEN}Cleanup complete!${NC}"
+  echo -e "${GREEN}Done!${NC}"
 }
 
 SCRIPT_URL="https://raw.githubusercontent.com/nayzo/ai-skills/main/git-worktree/worktree-manager.sh"
