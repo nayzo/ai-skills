@@ -43,22 +43,32 @@ add_alias_to_file() {
   local rc_file="$1"
   local alias_line='alias wt="bash $HOME/.local/share/git-worktree/worktree-manager.sh"'
 
+  if [[ ! -f "$rc_file" ]]; then
+    return 1  # fichier absent, on essaie le suivant
+  fi
+
   if grep -q "worktree-manager" "$rc_file" 2>/dev/null; then
     echo -e "  ${YELLOW}⚠  Alias already present in $rc_file, skipping${NC}"
   else
-    local created=false
-    if [[ ! -f "$rc_file" ]]; then
-      created=true
-    fi
     echo "" >> "$rc_file"
     echo "# Git Worktree Manager" >> "$rc_file"
     echo "$alias_line" >> "$rc_file"
-    if [[ "$created" == true ]]; then
-      echo -e "  ${GREEN}✓ $rc_file created and alias added${NC}"
-    else
-      echo -e "  ${GREEN}✓ Alias added to $rc_file${NC}"
-    fi
+    echo -e "  ${GREEN}✓ Alias added to $rc_file${NC}"
   fi
+  return 0
+}
+
+# Essaie les fichiers dans l'ordre, prend le premier qui existe
+resolve_rc_file() {
+  local candidates=("$@")
+  for f in "${candidates[@]}"; do
+    if [[ -f "$f" ]]; then
+      echo "$f"
+      return
+    fi
+  done
+  # Aucun trouvé : fallback sur .profile (standard POSIX, toujours présent)
+  echo "$HOME/.profile"
 }
 
 add_alias_fish() {
@@ -81,26 +91,28 @@ end'
 SOURCED_FILE=""
 case "$SHELL" in
   */zsh)
-    add_alias_to_file "$HOME/.zshrc"
-    SOURCED_FILE="$HOME/.zshrc"
+    if [[ "$OS" == "Darwin" ]]; then
+      SOURCED_FILE=$(resolve_rc_file "$HOME/.zshrc" "$HOME/.bash_profile" "$HOME/.profile")
+    else
+      SOURCED_FILE=$(resolve_rc_file "$HOME/.zshrc" "$HOME/.bashrc" "$HOME/.profile")
+    fi
+    add_alias_to_file "$SOURCED_FILE"
     ;;
   */bash)
     if [[ "$OS" == "Darwin" ]]; then
-      # Mac: .bash_profile est sourcé au login, .bashrc ne l'est pas
-      add_alias_to_file "$HOME/.bash_profile"
-      SOURCED_FILE="$HOME/.bash_profile"
+      SOURCED_FILE=$(resolve_rc_file "$HOME/.bash_profile" "$HOME/.bashrc" "$HOME/.profile")
     else
-      add_alias_to_file "$HOME/.bashrc"
-      SOURCED_FILE="$HOME/.bashrc"
+      SOURCED_FILE=$(resolve_rc_file "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.profile")
     fi
+    add_alias_to_file "$SOURCED_FILE"
     ;;
   */fish)
     add_alias_fish
     SOURCED_FILE="$HOME/.config/fish/config.fish"
     ;;
   *)
-    add_alias_to_file "$HOME/.profile"
-    SOURCED_FILE="$HOME/.profile"
+    SOURCED_FILE=$(resolve_rc_file "$HOME/.profile" "$HOME/.bashrc")
+    add_alias_to_file "$SOURCED_FILE"
     ;;
 esac
 
