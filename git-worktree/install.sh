@@ -58,7 +58,7 @@ add_alias_to_file() {
 wt() {
   local script="$HOME/.local/share/git-worktree/worktree-manager.sh"
   local cmd="${1:-list}"
-  local branch_name="$2"  # $1=cmd $2=branch $3=from (optional)
+  local branch_name="$2"   # $1=cmd $2=branch $3=from (optional)
 
   bash "$script" "$@"
   local exit_code=$?
@@ -75,11 +75,13 @@ wt() {
       elif [[ -n "$branch_name" ]]; then
         cd "$git_root/.worktrees/$branch_name"
       fi
-      # Interactive mode (no arg): path is printed above, cd manually
+      # Interactive mode (no arg): path printed by script above, cd manually
       ;;
     create|migrate|mv)
+      # $branch_name is the new worktree name (3rd arg = from-branch, ignored here)
       [[ -n "$branch_name" ]] && cd "$git_root/.worktrees/$branch_name"
       ;;
+    # list|ls, copy-env|env, cleanup|clean, update, help: no cd needed
   esac
 }
 ENDOFWT
