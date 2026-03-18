@@ -170,21 +170,24 @@ list_worktrees() {
   fi
 
   local count=0
-  for worktree_path in "$WORKTREE_DIR"/*; do
-    if [[ -d "$worktree_path" && -e "$worktree_path/.git" ]]; then
-      count=$((count + 1))
-      local worktree_name
-      worktree_name=$(basename "$worktree_path")
-      local branch
-      branch=$(git -C "$worktree_path" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+  while IFS= read -r git_file; do
+    local worktree_path
+    worktree_path=$(dirname "$git_file")
+    count=$((count + 1))
 
-      if [[ "$PWD" == "$worktree_path" ]]; then
-        echo -e "${GREEN}✓ $worktree_name${NC} (current) → branch: $branch"
-      else
-        echo -e "  $worktree_name → branch: $branch"
-      fi
+    # Affiche le chemin relatif depuis .worktrees/ pour lisibilité
+    local worktree_name
+    worktree_name="${worktree_path#$WORKTREE_DIR/}"
+
+    local branch
+    branch=$(git -C "$worktree_path" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+
+    if [[ "$PWD" == "$worktree_path" ]]; then
+      echo -e "${GREEN}✓ $worktree_name${NC} (current) → branch: $branch"
+    else
+      echo -e "  $worktree_name → branch: $branch"
     fi
-  done
+  done < <(find "$WORKTREE_DIR" -name ".git" -not -path "*/.git/*" 2>/dev/null | sort)
 
   echo ""
   if [[ $count -eq 0 ]]; then
@@ -320,23 +323,23 @@ cleanup_worktrees() {
   local found=0
   local to_remove=()
 
-  for worktree_path in "$WORKTREE_DIR"/*; do
-    if [[ -d "$worktree_path" && -e "$worktree_path/.git" ]]; then
-      local worktree_name
-      worktree_name=$(basename "$worktree_path")
+  while IFS= read -r git_file; do
+    local worktree_path
+    worktree_path=$(dirname "$git_file")
+    local worktree_name
+    worktree_name="${worktree_path#$WORKTREE_DIR/}"
 
-      if [[ "$PWD" == "$worktree_path" ]]; then
-        echo -e "${YELLOW}(skip) $worktree_name — currently active${NC}"
-        continue
-      fi
-
-      found=$((found + 1))
-      to_remove+=("$worktree_path")
-      local branch
-      branch=$(git -C "$worktree_path" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
-      echo -e "${YELLOW}• $worktree_name${NC} (branch: $branch)"
+    if [[ "$PWD" == "$worktree_path" ]]; then
+      echo -e "${YELLOW}(skip) $worktree_name — currently active${NC}"
+      continue
     fi
-  done
+
+    found=$((found + 1))
+    to_remove+=("$worktree_path")
+    local branch
+    branch=$(git -C "$worktree_path" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+    echo -e "${YELLOW}• $worktree_name${NC} (branch: $branch)"
+  done < <(find "$WORKTREE_DIR" -name ".git" -not -path "*/.git/*" 2>/dev/null | sort)
 
   if [[ $found -eq 0 ]]; then
     echo -e "${GREEN}No inactive worktrees to clean up${NC}"
