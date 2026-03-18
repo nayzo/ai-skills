@@ -33,27 +33,57 @@ curl -sSL "$BASE_URL/worktree-manager.sh" -o "$SCRIPT_PATH"
 chmod +x "$SCRIPT_PATH"
 echo -e "  ${GREEN}✓ Installed at $SCRIPT_PATH${NC}"
 
-# --- 2. Shell alias ---
+# --- 2. Shell function ---
 echo ""
-echo -e "${BLUE}[2/3] Setting up shell alias...${NC}"
+echo -e "${BLUE}[2/3] Setting up shell function...${NC}"
 
 OS="$(uname -s)"
 
 add_alias_to_file() {
   local rc_file="$1"
-  local alias_line='alias wt="bash $HOME/.local/share/git-worktree/worktree-manager.sh"'
 
   if [[ ! -f "$rc_file" ]]; then
     return 1  # fichier absent, on essaie le suivant
   fi
 
   if grep -q "worktree-manager" "$rc_file" 2>/dev/null; then
-    echo -e "  ${YELLOW}⚠  Alias already present in $rc_file, skipping${NC}"
+    echo -e "  ${YELLOW}⚠  Already present in $rc_file, skipping${NC}"
+    echo -e "  ${YELLOW}   (to upgrade: remove the wt block from $rc_file and re-run)${NC}"
   else
-    echo "" >> "$rc_file"
-    echo "# Git Worktree Manager" >> "$rc_file"
-    echo "$alias_line" >> "$rc_file"
-    echo -e "  ${GREEN}✓ Alias added to $rc_file${NC}"
+    # Write a shell function so wt switch/create/migrate can cd in the current shell.
+    # A plain alias (bash subshell) can't change the parent's CWD.
+    cat >> "$rc_file" << 'ENDOFWT'
+
+# Git Worktree Manager
+wt() {
+  local script="$HOME/.local/share/git-worktree/worktree-manager.sh"
+  local cmd="${1:-list}"
+  local branch_name="$2"  # $1=cmd $2=branch $3=from (optional)
+
+  bash "$script" "$@"
+  local exit_code=$?
+  [[ $exit_code -ne 0 ]] && return $exit_code
+
+  # cd must happen in the current shell — a subshell can't change the parent's CWD
+  local git_root
+  git_root=$(git rev-parse --show-toplevel 2>/dev/null) || return 0
+
+  case "$cmd" in
+    switch|go)
+      if [[ "$branch_name" == "main" ]]; then
+        cd "$git_root"
+      elif [[ -n "$branch_name" ]]; then
+        cd "$git_root/.worktrees/$branch_name"
+      fi
+      # Interactive mode (no arg): path is printed above, cd manually
+      ;;
+    create|migrate|mv)
+      [[ -n "$branch_name" ]] && cd "$git_root/.worktrees/$branch_name"
+      ;;
+  esac
+}
+ENDOFWT
+    echo -e "  ${GREEN}✓ Function added to $rc_file${NC}"
   fi
   return 0
 }
@@ -73,17 +103,40 @@ resolve_rc_file() {
 
 add_alias_fish() {
   local fish_config="$HOME/.config/fish/config.fish"
-  local func_block='# Git Worktree Manager
-function wt
-    bash $HOME/.local/share/git-worktree/worktree-manager.sh $argv
-end'
 
   if grep -q "worktree-manager" "$fish_config" 2>/dev/null; then
-    echo -e "  ${YELLOW}⚠  Alias already present in $fish_config, skipping${NC}"
+    echo -e "  ${YELLOW}⚠  Already present in $fish_config, skipping${NC}"
+    echo -e "  ${YELLOW}   (to upgrade: remove the wt block from $fish_config and re-run)${NC}"
   else
     mkdir -p "$(dirname "$fish_config")"
-    echo "" >> "$fish_config"
-    echo "$func_block" >> "$fish_config"
+    cat >> "$fish_config" << 'ENDOFWT'
+
+# Git Worktree Manager
+function wt
+  set script $HOME/.local/share/git-worktree/worktree-manager.sh
+  set cmd (count $argv > /dev/null; and echo $argv[1]; or echo list)
+  set branch_name ""
+  test (count $argv) -ge 2; and set branch_name $argv[2]
+
+  bash $script $argv
+  set exit_code $status
+  test $exit_code -ne 0; and return $exit_code
+
+  set git_root (git rev-parse --show-toplevel 2>/dev/null)
+  test $status -ne 0; and return 0
+
+  switch $cmd
+    case switch go
+      if test "$branch_name" = main
+        cd $git_root
+      else if test -n "$branch_name"
+        cd $git_root/.worktrees/$branch_name
+      end
+    case create migrate mv
+      test -n "$branch_name"; and cd $git_root/.worktrees/$branch_name
+  end
+end
+ENDOFWT
     echo -e "  ${GREEN}✓ Function added to $fish_config${NC}"
   fi
 }
