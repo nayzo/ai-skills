@@ -19,7 +19,7 @@ WORKTREE_DIR="$GIT_ROOT/.worktrees"
 
 # Ensure .worktrees is in .gitignore
 ensure_gitignore() {
-  if ! grep -q "^\.worktrees$" "$GIT_ROOT/.gitignore" 2>/dev/null; then
+  if ! grep -q "worktrees" "$GIT_ROOT/.gitignore" 2>/dev/null; then
     echo ".worktrees" >> "$GIT_ROOT/.gitignore"
     echo -e "  ${GREEN}✓ Added .worktrees to .gitignore${NC}"
   fi
