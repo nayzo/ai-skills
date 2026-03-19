@@ -116,7 +116,13 @@ create_worktree() {
 
   # Check if branch already exists (local or remote)
   if git show-ref --verify --quiet "refs/heads/$branch_name"; then
-    echo -e "${BLUE}Branch $branch_name already exists locally, using it...${NC}"
+    if [[ "$from_branch" != "main" ]]; then
+      echo -e "${YELLOW}⚠️  Branch $branch_name already exists locally and will be used as-is.${NC}"
+      echo -e "${YELLOW}   The --from '$from_branch' is ignored. Delete the branch first if you want a fresh start:${NC}"
+      echo -e "${YELLOW}   git branch -D $branch_name${NC}"
+    else
+      echo -e "${BLUE}Branch $branch_name already exists locally, using it...${NC}"
+    fi
     git worktree add "$worktree_path" "$branch_name"
   elif git show-ref --verify --quiet "refs/remotes/origin/$branch_name"; then
     echo -e "${BLUE}Branch $branch_name exists on remote, checking out...${NC}"
