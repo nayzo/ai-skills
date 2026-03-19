@@ -78,7 +78,9 @@ copy_env_files() {
 # Create a new worktree
 create_worktree() {
   local branch_name="$1"
-  local from_branch="${2:-main}"
+  # Strip leading "origin/" if user passed it — the script adds it internally
+  local from_branch="${2#origin/}"
+  from_branch="${from_branch:-main}"
 
   if [[ -z "$branch_name" ]]; then
     echo -e "${RED}Error: Branch name required${NC}"
@@ -264,7 +266,9 @@ copy_env_to_worktree() {
 # Migrate uncommitted changes from current location to a new worktree
 migrate_to_worktree() {
   local branch_name="$1"
-  local from_branch="${2:-main}"
+  # Strip leading "origin/" if user passed it — the script adds it internally
+  local from_branch="${2#origin/}"
+  from_branch="${from_branch:-main}"
 
   if [[ -z "$branch_name" ]]; then
     echo -e "${RED}Error: Branch name required${NC}"
