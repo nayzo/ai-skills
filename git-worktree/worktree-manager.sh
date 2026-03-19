@@ -384,11 +384,15 @@ cleanup_worktrees() {
   fi
 
   echo -e "${BLUE}Removing...${NC}"
+  local removed_branches=()
   for worktree_path in "${selected_paths[@]}"; do
     local worktree_name
     worktree_name="${worktree_path#$WORKTREE_DIR/}"
+    local branch
+    branch=$(git -C "$worktree_path" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
     git worktree remove "$worktree_path" --force 2>/dev/null || rm -rf "$worktree_path"
     echo -e "  ${GREEN}✓ Removed: $worktree_name${NC}"
+    [[ -n "$branch" ]] && removed_branches+=("$branch")
   done
 
   git worktree prune
@@ -399,6 +403,14 @@ cleanup_worktrees() {
   fi
 
   echo -e "${GREEN}Done!${NC}"
+
+  if [[ ${#removed_branches[@]} -gt 0 ]]; then
+    echo ""
+    echo -e "${YELLOW}ℹ️  Local branches were kept. To delete them:${NC}"
+    for b in "${removed_branches[@]}"; do
+      echo -e "     git branch -D $b"
+    done
+  fi
 }
 
 SCRIPT_URL="https://raw.githubusercontent.com/nayzo/ai-skills/main/git-worktree/worktree-manager.sh"
