@@ -21,7 +21,7 @@ Run it via Bash: `bash ~/.local/share/git-worktree/worktree-manager.sh <command>
 
 - Always run the script via Bash: `bash ~/.local/share/git-worktree/worktree-manager.sh`
 - For `create` and `migrate`: show the full output, including the path where the worktree was created
-- After `create`: remind the user to `cd` into the worktree path shown in the output
+- After `create` or `migrate`: automatically `cd` into the worktree path via a Bash `cd` call (the cwd persists between Bash tool calls)
 - For `cleanup`: run the script and let the user respond to the interactive prompt
 - If the script is not found at `~/.local/share/git-worktree/worktree-manager.sh`, tell the user to install it first (see README.md)
 
@@ -29,9 +29,11 @@ Run it via Bash: `bash ~/.local/share/git-worktree/worktree-manager.sh <command>
 
 User: "crée un worktree pour feat/ALM-1234/ma-feature"
 → `bash ~/.local/share/git-worktree/worktree-manager.sh create feat/ALM-1234/ma-feature`
+→ then: `cd "$(git worktree list | head -1 | awk '{print $1}')/.worktrees/feat/ALM-1234/ma-feature"`
 
 User: "j'ai du code non commité sur main, migre-le vers feat/ALM-1234/ma-feature"
 → `bash ~/.local/share/git-worktree/worktree-manager.sh migrate feat/ALM-1234/ma-feature`
+→ then: `cd "$(git worktree list | head -1 | awk '{print $1}')/.worktrees/feat/ALM-1234/ma-feature"`
 
 User: "liste mes worktrees"
 → `bash ~/.local/share/git-worktree/worktree-manager.sh list`
@@ -40,7 +42,10 @@ User: "nettoie les worktrees"
 → `bash ~/.local/share/git-worktree/worktree-manager.sh cleanup`
 
 User: "reviens sur main" / "switch sur main"
-→ `bash ~/.local/share/git-worktree/worktree-manager.sh switch` (no arg = main)
+→ `cd "$(git worktree list | head -1 | awk '{print $1}')"`
+
+User: "switch sur feat/ALM-1234/ma-feature"
+→ `cd "$(git worktree list | head -1 | awk '{print $1}')/.worktrees/feat/ALM-1234/ma-feature"`
 
 ## Arguments
 
