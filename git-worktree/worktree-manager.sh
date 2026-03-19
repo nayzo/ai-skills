@@ -13,8 +13,8 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Get repo root
-GIT_ROOT=$(git rev-parse --show-toplevel)
+# Get repo root — always the main worktree, even when called from a worktree
+GIT_ROOT=$(git worktree list --porcelain | awk 'NR==1{print $2}')
 WORKTREE_DIR="$GIT_ROOT/.worktrees"
 
 # File used to pass the target cd path back to the parent shell's wt() wrapper
@@ -209,10 +209,7 @@ switch_worktree() {
   local worktree_name="$1"
 
   if [[ -z "$worktree_name" ]]; then
-    list_worktrees
-    echo ""
-    echo -e "${BLUE}Switch to which worktree? (enter name, or 'main' for main repo)${NC}"
-    read -r worktree_name
+    worktree_name="main"
   fi
 
   if [[ "$worktree_name" == "main" ]]; then
