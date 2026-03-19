@@ -14,6 +14,7 @@ Run it via Bash: `bash ~/.local/share/git-worktree/worktree-manager.sh <command>
 - **migrate** `<branch> [from-branch]` — Move uncommitted changes from current directory to a new worktree (stash → create → stash pop).
 - **list** — List all worktrees with their branch and status.
 - **copy-env** `[branch]` — Copy `.env*` files from main repo to an existing worktree.
+- **switch** `[branch]` — Switch to a worktree. Without argument, switches to the main repo.
 - **cleanup** — Interactively remove inactive worktrees and run `git worktree prune`.
 
 ## Behavior rules
@@ -37,6 +38,9 @@ User: "liste mes worktrees"
 
 User: "nettoie les worktrees"
 → `bash ~/.local/share/git-worktree/worktree-manager.sh cleanup`
+
+User: "reviens sur main" / "switch sur main"
+→ `bash ~/.local/share/git-worktree/worktree-manager.sh switch` (no arg = main)
 
 ## Arguments
 
