@@ -126,7 +126,7 @@ create_worktree() {
     git worktree add "$worktree_path" "$branch_name"
   elif git show-ref --verify --quiet "refs/remotes/origin/$branch_name"; then
     echo -e "${BLUE}Branch $branch_name exists on remote, checking out...${NC}"
-    git worktree add "$worktree_path" --track "origin/$branch_name"
+    git worktree add -b "$branch_name" "$worktree_path" "origin/$branch_name"
   else
     echo -e "${BLUE}Creating new branch $branch_name from $from_branch...${NC}"
     git worktree add -b "$branch_name" "$worktree_path" "origin/$from_branch" 2>/dev/null \
