@@ -156,6 +156,14 @@ create_worktree() {
     echo -e "  ${GREEN}✓ docker/compose/docker-compose.override.yml → symlink${NC}"
   fi
 
+  # Symlink CLAUDE.md if it exists in main repo (project instructions for Claude Code)
+  if [[ -e "$GIT_ROOT/CLAUDE.md" ]]; then
+    local claude_target
+    claude_target=$(readlink -f "$GIT_ROOT/CLAUDE.md" 2>/dev/null || echo "$GIT_ROOT/CLAUDE.md")
+    ln -sf "$claude_target" "$worktree_path/CLAUDE.md"
+    echo -e "  ${GREEN}✓ CLAUDE.md → symlink${NC}"
+  fi
+
   # Copy environment files
   copy_env_files "$worktree_path"
 
